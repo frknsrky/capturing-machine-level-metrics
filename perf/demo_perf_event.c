@@ -69,7 +69,7 @@ void measure_events() {
     ioctl(leader_fd, PERF_EVENT_IOC_DISABLE, 0);
 
     // Read results
-    long long cycles, instructions, l1_misses;
+    long long cycles, instructions, l1_misses, l2_misses, l3_misses;
     read(leader_fd, &cycles, sizeof(long long));
     read(instructions_fd, &instructions, sizeof(long long));
     read(l1_misses_fd, &l1_misses, sizeof(long long));
