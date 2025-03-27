@@ -87,7 +87,7 @@ void measure_events(int iterations, int enable_counters) {
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     double runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
-    printf("Execution Time (with counters): %.3f ms\n", runtime_ms);
+    printf("Execution Time: %.3f ms\n", runtime_ms);
 
     if (enable_counters) {
 	
