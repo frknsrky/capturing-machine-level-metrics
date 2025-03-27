@@ -74,6 +74,8 @@ void measure_events() {
     double runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
  
     printf("Execution Time: %.3f ms\n", runtime_ms);
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
 	
     // Start counting
     ioctl(leader_fd, PERF_EVENT_IOC_RESET, 0);
