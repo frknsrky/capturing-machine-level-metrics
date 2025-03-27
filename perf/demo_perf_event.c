@@ -21,7 +21,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
     return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
-void measure_events(int iterations, int enable_counters) {
+double measure_events(int iterations, int enable_counters) {
     struct perf_event_attr pe = {0};
 
     // Open the leader event (Total CPU Cycles)
@@ -113,6 +113,8 @@ void measure_events(int iterations, int enable_counters) {
         close(llc_misses_fd);
         close(tlb_misses_fd);
     }
+	
+	return runtime_ms;
 }
 
 int main(int argc, char *argv[]) {
@@ -128,7 +130,13 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error: Iterations must be a positive integer.\n");
         return EXIT_FAILURE;
     }
-
-    measure_events(iterations, enable_counters);
+	
+	double sum=0;
+	
+	for(int i=0; i<100; i++){
+		sum += measure_events(iterations, enable_counters);
+	}
+	
+	printf("Avg Execution Time: %.3f ms, for enable_counters:%d\n", sum/100.0, enable_counters);
     return EXIT_SUCCESS;
 }
