@@ -42,21 +42,25 @@ void measure_events() {
     pe.config = PERF_COUNT_HW_INSTRUCTIONS;
     int instructions_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 
+    // L1 Cache
     pe.type = PERF_TYPE_HW_CACHE;
     pe.config = PERF_COUNT_HW_CACHE_L1D | 
                 (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
                 (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
     int l1_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
-    
-    pe.config = PERF_COUNT_HW_CACHE_L2 | 
-                (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
-                (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
-    int l2_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 
+    // Last Level Cache
     pe.config = PERF_COUNT_HW_CACHE_LL | 
                 (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
                 (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
-    int l3_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+    int llc_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+
+    // TLB
+    pe.type = PERF_TYPE_HW_CACHE;
+    pe.config = PERF_COUNT_HW_CACHE_DTLB | 
+                (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
+                (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+    int tlb_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 
     // Start counting
     ioctl(leader_fd, PERF_EVENT_IOC_RESET, 0);
@@ -69,19 +73,19 @@ void measure_events() {
     ioctl(leader_fd, PERF_EVENT_IOC_DISABLE, 0);
 
     // Read results
-    long long cycles, instructions, l1_misses, l2_misses, l3_misses;
+    long long cycles, instructions, l1_misses, llc_misses, tlb_misses;
     read(leader_fd, &cycles, sizeof(long long));
     read(instructions_fd, &instructions, sizeof(long long));
     read(l1_misses_fd, &l1_misses, sizeof(long long));
-    read(l2_misses_fd, &l2_misses, sizeof(long long));
-    read(l3_misses_fd, &l3_misses, sizeof(long long));
+    read(llc_misses_fd, &llc_misses, sizeof(long long));
+    read(tlb_misses_fd, &tlb_misses, sizeof(long long));
 
     // Display results
     printf("Total CPU Cycles: %lld\n", cycles);
     printf("Total Instructions: %lld\n", instructions);
     printf("L1 Data Cache Misses: %lld\n", l1_misses);
-    printf("L2 Cache Misses: %lld\n", l2_misses);
-    printf("L3 Cache Misses: %lld\n", l3_misses);
+    printf("Last Level Cache (LLC) Misses: %lld\n", llc_misses); 
+    printf("TLB Misses: %lld\n", tlb_misses);
 
     // Close file descriptors
     close(leader_fd);
