@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
 #include <string.h>
+#include <time.h>
 
 void some_computation() {
     volatile int sum = 0;
@@ -62,15 +63,33 @@ void measure_events() {
                 (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
     int tlb_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    // Sample computation
+    some_computation();
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
+ 
+    printf("Execution Time: %.3f ms\n", runtime_ms);
+	
     // Start counting
     ioctl(leader_fd, PERF_EVENT_IOC_RESET, 0);
     ioctl(leader_fd, PERF_EVENT_IOC_ENABLE, 0);
 
     // Sample computation
-	some_computation();
+    some_computation();
 
     // Stop counting
     ioctl(leader_fd, PERF_EVENT_IOC_DISABLE, 0);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
+ 
+    printf("Execution Time: %.3f ms\n", runtime_ms);
 
     // Read results
     long long cycles, instructions, l1_misses, llc_misses, tlb_misses;
