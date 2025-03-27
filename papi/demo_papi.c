@@ -1,17 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <papi.h>
+#include <time.h>
 
 void some_computation() {
     volatile int sum = 0;
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 1000000;i++) {
         sum += i;  // Simple computation to generate instructions and cache usage
     }
 }
 
 int main() {
     int event_set = PAPI_NULL;
-    long long values[3];  // Store values for TOT_INS, TOT_CYC, and L1_DCM
+    long long values[6];  // Store values for TOT_INS, TOT_CYC, L1_DCM, power, latency, and DRAM access
+    struct timespec start, end;  // For runtime measurement
 
     // Initialize PAPI library
     if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
@@ -41,6 +43,29 @@ int main() {
         return 1;
     }
 
+    // Memory latency proxy (L2 cache misses)
+    if (PAPI_add_event(event_set, PAPI_L2_DCM) != PAPI_OK) {
+        fprintf(stderr, "Error adding PAPI_L2_DCM event!\n");
+        return 1;
+    }
+
+    // DRAM accesses (L3 total cache misses)
+    /*if (PAPI_add_event(event_set, PAPI_L3_DCM) != PAPI_OK) {
+        fprintf(stderr, "Error adding PAPI_L3_DCM event!\n");
+        return 1;
+    }*/
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    some_computation();  // Run the function to measure
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
+ 
+    printf("Execution Time: %.3f ms\n", runtime_ms);
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     // Start measuring
     PAPI_start(event_set);
 
@@ -49,10 +74,18 @@ int main() {
     // Stop measuring
     PAPI_stop(event_set, values);
 
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
+ 
+    printf("Execution Time: %.3f ms\n", runtime_ms);
+
     // Print results
     printf("Total instructions: %lld\n", values[0]);
     printf("Total cycles: %lld\n", values[1]);
     printf("L1 Data Cache Misses: %lld\n", values[2]);
+    printf("L2 Data Cache Misses: %lld\n", values[3]);
+    //printf("L3 Data Cache Misses: %lld\n", values[4]);
 
     // Cleanup
     PAPI_shutdown();
