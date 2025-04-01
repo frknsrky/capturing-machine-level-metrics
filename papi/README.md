@@ -1,8 +1,6 @@
 # PAPI
 To run experiments with PAPI, run following installation steps and replace frknsrky with your username:
 
-cd /home
-
 wget http://icl.utk.edu/projects/papi/downloads/papi-6.0.0.tar.gz
 
 tar -xvf papi-6.0.0.tar.gz
