@@ -62,7 +62,7 @@ double measure_events(long iterations, int enable_counters) {
     int leader_fd = perf_event_open(&pe, 0, -1, -1, 0);
     if (leader_fd == -1) {
         perror("perf_event_open (leader)");
-        return;
+        return -1;
     }
 
     // Open follower events in the same group
