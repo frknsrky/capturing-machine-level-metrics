@@ -49,6 +49,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
 }
 
 double measure_events(long iterations, int enable_counters) {
+	if (enable_counters) {
     struct perf_event_attr pe = {0};
 
     // Open the leader event (Total CPU Cycles)
@@ -95,6 +96,7 @@ double measure_events(long iterations, int enable_counters) {
     CPU_ZERO(&set);
     CPU_SET(0, &set);
     sched_setaffinity(0, sizeof(set), &set);
+	}
 
     setup_array();
 
