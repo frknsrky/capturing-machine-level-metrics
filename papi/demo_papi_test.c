@@ -39,6 +39,7 @@ void some_computation(long iterations) {
 }
 
 double measure_events(long iterations, int enable_counters) {
+	if(enable_counters=1){
     int event_set = PAPI_NULL;
     long long values[6];  // Store values for TOT_INS, TOT_CYC, L1_DCM, power, latency, and DRAM access
     struct timespec start, end;  // For runtime measurement
@@ -83,6 +84,7 @@ double measure_events(long iterations, int enable_counters) {
         fprintf(stderr, "Error adding PAPI_L3_DCM event!\n");
         return 1;
     }*/
+	}
 
   // Pin to a single core to avoid noise from other CPUs
     cpu_set_t set;
@@ -127,10 +129,11 @@ double measure_events(long iterations, int enable_counters) {
 		printf("L1 Data Cache Misses: %lld\n", values[2]);
 		printf("L2 Data Cache Misses: %lld\n", values[3]);
 		//printf("L3 Data Cache Misses: %lld\n", values[4
+		// Cleanup
+    		PAPI_shutdown();
 	}
 
-    // Cleanup
-    PAPI_shutdown();
+    
   free(array);
 	
 	return runtime_ms;
