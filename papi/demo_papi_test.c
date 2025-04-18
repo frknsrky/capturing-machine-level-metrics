@@ -149,7 +149,7 @@ double measure_events(long iterations, int enable_counters, char* mode) {
 
 		runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
  
-		printf("Execution Time: %.3f ms\n", runtime_ms);
+		//printf("Execution Time: %.3f ms\n", runtime_ms);
 	}
 	
 	if(enable_counters==1){
@@ -167,13 +167,13 @@ double measure_events(long iterations, int enable_counters, char* mode) {
 
 		runtime_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1.0e6;
 	 
-		printf("Execution Time: %.3f ms\n", runtime_ms);
+		//printf("Execution Time: %.3f ms\n", runtime_ms);
 
 		// Print results
-		printf("Total instructions: %lld\n", values[0]);
-		printf("Total cycles: %lld\n", values[1]);
-		printf("L1 Data Cache Misses: %lld\n", values[2]);
-		printf("L2 Data Cache Misses: %lld\n", values[3]);
+		//printf("Total instructions: %lld\n", values[0]);
+		//printf("Total cycles: %lld\n", values[1]);
+		//printf("L1 Data Cache Misses: %lld\n", values[2]);
+		//printf("L2 Data Cache Misses: %lld\n", values[3]);
 		//printf("L3 Data Cache Misses: %lld\n", values[4
 		// Cleanup
     		PAPI_shutdown();
