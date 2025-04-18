@@ -18,7 +18,7 @@ sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
 
 ./papi_avail
 
-cd ../../src/ctests
+cd ../../ctests
 
 ./serial_hl
 
