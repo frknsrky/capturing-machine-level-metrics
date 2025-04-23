@@ -85,7 +85,8 @@ def overhead_plotter(mode):
     # Set x-ticks to categorical values
     plt.xticks(x_values, iterations)
     
-    plt.yscale("log")
+    plt.yscale("symlog", linthresh=0.1)
+
     
     # Labels and title
     plt.xlabel("Iterations")
@@ -102,4 +103,4 @@ modes =["mem","cpu","io"]
 
 for i in modes:
     overhead_plotter(i)
-
+    
