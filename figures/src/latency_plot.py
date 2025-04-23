@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+vimport matplotlib.pyplot as plt
 import numpy as np
 
 def latency_plotter(mode):
@@ -21,6 +21,8 @@ def latency_plotter(mode):
             "10M": (459.070, 471.875),
         }
        
+        iterations = ["1K", "10K", "100K", "1M", "10M"]
+        
     elif(mode=="cpu"):
         # Data points (Execution Time in ms)
         papi = {
@@ -38,6 +40,8 @@ def latency_plotter(mode):
             "1M": (110.398, 112.450),
             "10M": (1098.764, 1113.285),
         } 
+        
+        iterations = ["1K", "10K", "100K", "1M", "10M"]
        
     elif(mode=="io"):
         # Data points (Execution Time in ms)
@@ -56,9 +60,9 @@ def latency_plotter(mode):
             "1K": (20.033, 23.984),
             "10K": (275.148, 254.031),
         }
-    
-    # Extracting x values (iterations)
-    iterations = ["1K", "10K", "100K", "1M", "10M"]#
+        
+        iterations = ["1","10","100","1K", "10K"]
+
     x_values = np.arange(len(iterations))  # Numeric indices for categorical x-axis
     
     # Extracting y values
