@@ -98,7 +98,7 @@ double measure_events(long iterations, int enable_counters, char* mode, int num_
 	int leader_fd;
 	int instructions_fd;
 	int l1_misses_fd;
-	int l2_misses_fd;
+	int ll_misses_fd;
 	
 	if (enable_counters) {
     struct perf_event_attr pe = {0};
@@ -133,10 +133,10 @@ double measure_events(long iterations, int enable_counters, char* mode, int num_
 	    l1_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 	
 	    // L2 Cache Misses
-	    pe.config = PERF_COUNT_HW_CACHE_L2 |
+	    pe.config = PERF_COUNT_HW_CACHE_LL |
 	            (PERF_COUNT_HW_CACHE_OP_READ << 8) |
 	            (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
-	    l2_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+	    ll_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 	}
 
     // TLB Misses
@@ -189,7 +189,7 @@ double measure_events(long iterations, int enable_counters, char* mode, int num_
 
 	    if (num_metrics == 4) {
 		read(l1_misses_fd, &l1_misses, sizeof(long long));
-		read(l2_misses_fd, &l2_misses, sizeof(long long));
+		read(ll_misses_fd, &l2_misses, sizeof(long long));
 	    }
 	
 	// Display results
@@ -205,7 +205,7 @@ double measure_events(long iterations, int enable_counters, char* mode, int num_
 
 	    if (num_metrics == 4) {
 	        close(l1_misses_fd);
-	        close(l2c_misses_fd);
+	        close(ll_misses_fd);
 	    }
     }
 
@@ -251,7 +251,7 @@ int main(int argc, char *argv[]) {
 				FILE *file = fopen(filename, "w");
 				for(int i=0; i<1000; i++){
 					char str_latency[64];
-					sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+					sprintf(str_latency, "%f", measure_events(iterations, 1, mode, num_metrics));
 					fprintf(file, "%s\n", str_latency);
 				}
 				fclose(file);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
 			FILE *file = fopen(filename, "w");
 			for(int i=0; i<1000; i++){
 				char str_latency[64];
-				sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+				sprintf(str_latency, "%f", measure_events(iterations, 1, mode, num_metrics));
 				fprintf(file, "%s\n", str_latency);
 			}
 			fclose(file);
