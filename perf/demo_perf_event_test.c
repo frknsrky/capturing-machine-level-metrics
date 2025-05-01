@@ -83,7 +83,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
     return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
-double measure_events(long iterations, int enable_counters, char* mode) {
+double measure_events(long iterations, int enable_counters, char* mode, int num_metrics) {
 
 	void (*compute)(long);
 	if (strcmp(mode, "mem") == 0) {
@@ -98,8 +98,7 @@ double measure_events(long iterations, int enable_counters, char* mode) {
 	int leader_fd;
 	int instructions_fd;
 	int l1_misses_fd;
-	int llc_misses_fd;
-	int tlb_misses_fd;
+	int l2_misses_fd;
 	
 	if (enable_counters) {
     struct perf_event_attr pe = {0};
@@ -124,24 +123,27 @@ double measure_events(long iterations, int enable_counters, char* mode) {
     pe.config = PERF_COUNT_HW_INSTRUCTIONS;
     instructions_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 
-    // L1 Cache Misses
-    pe.type = PERF_TYPE_HW_CACHE;
-    pe.config = PERF_COUNT_HW_CACHE_L1D | 
-                (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
-                (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
-    l1_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+	if (num_metrics == 4) {
 
-    // Last Level Cache (LLC) Misses
-    pe.config = PERF_COUNT_HW_CACHE_LL | 
-                (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
-                (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
-    llc_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+	    // L1 Cache Misses
+	    pe.type = PERF_TYPE_HW_CACHE;
+	    pe.config = PERF_COUNT_HW_CACHE_L1D | 
+	                (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
+	                (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+	    l1_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+	
+	    // L2 Cache Misses
+	    pe.config = PERF_COUNT_HW_CACHE_L2 |
+	            (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+	            (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+	    l2_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+	}
 
     // TLB Misses
-    pe.config = PERF_COUNT_HW_CACHE_DTLB | 
-                (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
-                (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
-    tlb_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
+    // pe.config = PERF_COUNT_HW_CACHE_DTLB | 
+    //             (PERF_COUNT_HW_CACHE_OP_READ << 8) | 
+    //             (PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+    // tlb_misses_fd = perf_event_open(&pe, 0, -1, leader_fd, 0);
 
   // Pin to a single core to avoid noise from other CPUs
     cpu_set_t set;
@@ -181,12 +183,14 @@ double measure_events(long iterations, int enable_counters, char* mode) {
     if (enable_counters) {
 	
 	// Read results
-	long long cycles, instructions, l1_misses, llc_misses, tlb_misses;
+	long long cycles, instructions, l1_misses, l2_misses;
 	read(leader_fd, &cycles, sizeof(long long));
 	read(instructions_fd, &instructions, sizeof(long long));
-	read(l1_misses_fd, &l1_misses, sizeof(long long));
-	read(llc_misses_fd, &llc_misses, sizeof(long long));
-	read(tlb_misses_fd, &tlb_misses, sizeof(long long));
+
+	    if (num_metrics == 4) {
+		read(l1_misses_fd, &l1_misses, sizeof(long long));
+		read(l2_misses_fd, &l2_misses, sizeof(long long));
+	    }
 	
 	// Display results
 	//printf("Total CPU Cycles: %lld\n", cycles);
@@ -198,9 +202,11 @@ double measure_events(long iterations, int enable_counters, char* mode) {
         // Close file descriptors
         close(leader_fd);
         close(instructions_fd);
-        close(l1_misses_fd);
-        close(llc_misses_fd);
-        close(tlb_misses_fd);
+
+	    if (num_metrics == 4) {
+	        close(l1_misses_fd);
+	        close(l2c_misses_fd);
+	    }
     }
 
 	
@@ -212,31 +218,61 @@ double measure_events(long iterations, int enable_counters, char* mode) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <iterations> <enable_counters (0 or 1)> <mode ('mem', 'cpu', or 'io')>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
+    // if (argc != 4) {
+    //     fprintf(stderr, "Usage: %s <iterations> <enable_counters (0 or 1)> <mode ('mem', 'cpu', or 'io')>\n", argv[0]);
+    //     return EXIT_FAILURE;
+    // }
 
-    long iterations = atol(argv[1]);
-    int enable_counters = atoi(argv[2]);
-    char* mode = argv[3];
+ //    long iterations = atol(argv[1]);
+ //    int enable_counters = atoi(argv[2]);
+ //    char* mode = argv[3];
 
-    if (iterations <= 0) {
-        fprintf(stderr, "Error: Iterations must be a positive integer.\n");
-        return EXIT_FAILURE;
-    }
+ //    if (iterations <= 0) {
+ //        fprintf(stderr, "Error: Iterations must be a positive integer.\n");
+ //        return EXIT_FAILURE;
+ //    }
 
-    if (strcmp(mode, "mem") != 0 && strcmp(mode, "cpu") != 0 && strcmp(mode, "io") != 0) {
-	fprintf(stderr, "Error: Mode must be 'mem', 'cpu', or 'io'.\n");
-        return EXIT_FAILURE; 
-    }
+ //    if (strcmp(mode, "mem") != 0 && strcmp(mode, "cpu") != 0 && strcmp(mode, "io") != 0) {
+	// fprintf(stderr, "Error: Mode must be 'mem', 'cpu', or 'io'.\n");
+ //        return EXIT_FAILURE; 
+ //    }
 	
-    double sum=0;
+ //    double sum=0;
 	
-    for(int i=0; i<100; i++){
-	sum += measure_events(iterations, enable_counters, mode);
-    }
+    	char* modes[] = {"mem", "cpu", "io"};
+
+	int j = 0;
+	for (; j<2; j++) {
+		char* mode = modes[j];
+		for (int iterations=1000; iterations<=10000000; iterations *= 10) {
+			for (int num_metrics = 2; num_metrics <=4; num_metrics += 2) {
+				char filename[128];
+				snprintf(filename, sizeof(filename), "perf_output_%s_%d_%d.txt", mode, iterations, num_metrics);
+				FILE *file = fopen(filename, "w");
+				for(int i=0; i<1000; i++){
+					char str_latency[64];
+					sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+					fprintf(file, "%s\n", str_latency);
+				}
+				fclose(file);
+			}
+		}
+	}
+	char* mode = modes[j];
+	for (int iterations=1; iterations<=10000; iterations *= 10) {
+		for (int num_metrics = 2; num_metrics <=4; num_metrics += 2) {
+			char filename[128];
+			snprintf(filename, sizeof(filename), "perf_output_%s_%d_%d.txt", mode, iterations, num_metrics);
+			FILE *file = fopen(filename, "w");
+			for(int i=0; i<1000; i++){
+				char str_latency[64];
+				sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+				fprintf(file, "%s\n", str_latency);
+			}
+			fclose(file);
+		}
+	}
 	
-    printf("Avg Execution Time: %.3f ms, for enable_counters:%d\n", sum/100.0, enable_counters);
+    // printf("Avg Execution Time: %.3f ms, for enable_counters:%d\n", sum/100.0, enable_counters);
     return EXIT_SUCCESS;
 }
