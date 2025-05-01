@@ -124,7 +124,7 @@ double measure_events(long iterations, int enable_counters, char* mode, int num_
 	    }
 	
 	    // Memory latency proxy (L2 cache misses)
-	    if (PAPI_add_event(event_set, PAPI_L2_DCM) != PAPI_OK) {
+	    if (PAPI_add_event(event_set, PAPI_L3_DCM) != PAPI_OK) {
 	        fprintf(stderr, "Error adding PAPI_L2_DCM event!\n");
 	        return 1;
 	    }
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
 				FILE *file = fopen(filename, "w");
 				for(int i=0; i<1000; i++){
 					char str_latency[64];
-					sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+					sprintf(str_latency, "%f", measure_events(iterations, 1, mode, num_metrics));
 					fprintf(file, "%s\n", str_latency);
 				}
 				fclose(file);
@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
 			FILE *file = fopen(filename, "w");
 			for(int i=0; i<1000; i++){
 				char str_latency[64];
-				sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+				sprintf(str_latency, "%f", measure_events(iterations, 1, mode, num_metrics));
 				fprintf(file, "%s\n", str_latency);
 			}
 			fclose(file);
