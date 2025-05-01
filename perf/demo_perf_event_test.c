@@ -152,8 +152,6 @@ double measure_events(long iterations, int enable_counters, char* mode, int num_
     sched_setaffinity(0, sizeof(set), &set);
 	}
 
-    setup_array();
-
     struct timespec start, end;   
     clock_gettime(CLOCK_MONOTONIC, &start);
 
