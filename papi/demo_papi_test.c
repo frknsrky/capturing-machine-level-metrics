@@ -74,7 +74,7 @@ void io_strain(long iterations) {
     fclose(file);
 }
 
-double measure_events(long iterations, int enable_counters, char* mode) {
+double measure_events(long iterations, int enable_counters, char* mode, int num_metrics) {
 
 	void (*compute)(long);
 	if (strcmp(mode, "mem") == 0) {
@@ -116,16 +116,19 @@ double measure_events(long iterations, int enable_counters, char* mode) {
         return 1;
     }
 
-    if (PAPI_add_event(event_set, PAPI_L1_DCM) != PAPI_OK) {
-        fprintf(stderr, "Error adding PAPI_L1_DCM event!\n");
-        return 1;
-    }
-
-    // Memory latency proxy (L2 cache misses)
-    if (PAPI_add_event(event_set, PAPI_L2_DCM) != PAPI_OK) {
-        fprintf(stderr, "Error adding PAPI_L2_DCM event!\n");
-        return 1;
-    }
+	if (num_metrics == 4) {
+	
+	    if (PAPI_add_event(event_set, PAPI_L1_DCM) != PAPI_OK) {
+	        fprintf(stderr, "Error adding PAPI_L1_DCM event!\n");
+	        return 1;
+	    }
+	
+	    // Memory latency proxy (L2 cache misses)
+	    if (PAPI_add_event(event_set, PAPI_L2_DCM) != PAPI_OK) {
+	        fprintf(stderr, "Error adding PAPI_L2_DCM event!\n");
+	        return 1;
+	    }
+	}
 
     // DRAM accesses (L3 total cache misses)
     /*if (PAPI_add_event(event_set, PAPI_L3_DCM) != PAPI_OK) {
@@ -187,31 +190,61 @@ double measure_events(long iterations, int enable_counters, char* mode) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <iterations> <enable_counters (0 or 1)> <mode ('mem', 'cpu', or 'io')>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
+    // if (argc != 4) {
+    //     fprintf(stderr, "Usage: %s <iterations> <enable_counters (0 or 1)> <mode ('mem', 'cpu', or 'io')>\n", argv[0]);
+    //     return EXIT_FAILURE;
+    // }
 
-    long iterations = atol(argv[1]);
-    int enable_counters = atoi(argv[2]);
-    char* mode = argv[3];
+ //    long iterations = atol(argv[1]);
+ //    int enable_counters = atoi(argv[2]);
+ //    char* mode = argv[3];
 
-    if (iterations <= 0) {
-        fprintf(stderr, "Error: Iterations must be a positive integer.\n");
-        return EXIT_FAILURE;
-    }
+ //    if (iterations <= 0) {
+ //        fprintf(stderr, "Error: Iterations must be a positive integer.\n");
+ //        return EXIT_FAILURE;
+ //    }
 
-    if (strcmp(mode, "mem") != 0 && strcmp(mode, "cpu") != 0 && strcmp(mode, "io") != 0) {
-	fprintf(stderr, "Error: Mode must be 'mem', 'cpu', or 'io'.\n");
-        return EXIT_FAILURE; 
-    }
+ //    if (strcmp(mode, "mem") != 0 && strcmp(mode, "cpu") != 0 && strcmp(mode, "io") != 0) {
+	// fprintf(stderr, "Error: Mode must be 'mem', 'cpu', or 'io'.\n");
+ //        return EXIT_FAILURE; 
+ //    }
 	
-    double sum=0;
+ //    double sum=0;
 	
-    for(int i=0; i<100; i++){
-	sum += measure_events(iterations, enable_counters, mode);
-    }
+    	char* modes[] = {"mem", "cpu", "io"};
+
+	int j = 0;
+	for (; j<2; j++) {
+		char* mode = modes[j];
+		for (int iterations=1000; iterations<=10000000; iterations *= 10) {
+			for (int num_metrics = 2; num_metrics <=4; num_metrics += 2) {
+				char filename[128];
+				snprintf(filename, sizeof(filename), "papi_output_%s_%d_%d.txt", mode, iterations, num_metrics);
+				FILE *file = fopen(filename, "w");
+				for(int i=0; i<1000; i++){
+					char str_latency[64];
+					sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+					fprintf(file, "%s\n", str_latency);
+				}
+				fclose(file);
+			}
+		}
+	}
+	char* mode = modes[j];
+	for (int iterations=1; iterations<=10000; iterations *= 10) {
+		for (int num_metrics = 2; num_metrics <=4; num_metrics += 2) {
+			char filename[128];
+			snprintf(filename, sizeof(filename), "papi_output_%s_%d_%d.txt", mode, iterations, num_metrics);
+			FILE *file = fopen(filename, "w");
+			for(int i=0; i<1000; i++){
+				char str_latency[64];
+				sprintf(str_latency, "%f", measure_events(iterations, 1, mode));
+				fprintf(file, "%s\n", str_latency);
+			}
+			fclose(file);
+		}
+	}
 	
-    printf("Avg Execution Time: %.3f ms, for enable_counters:%d\n", sum/100.0, enable_counters);
+    // printf("Avg Execution Time: %.3f ms, for enable_counters:%d\n", sum/100.0, enable_counters);
     return EXIT_SUCCESS;
 }
