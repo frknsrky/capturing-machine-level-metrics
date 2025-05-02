@@ -1,105 +1,108 @@
-vimport matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-def latency_plotter(mode):
-    if(mode=="mem"):
-    
-        # Data points (Execution Time in ms)
-        papi = {
-            "1K": (0.076, 0.116),
-            "10K": (0.521, 0.605),
-            "100K": (5.126, 5.428),
-            "1M": (46.496, 52.279),
-            "10M": (459.070, 510.373),
-        }
-       
-        perf = {
-            "1K": (0.076, 0.105),
-            "10K": (0.521, 0.535),
-            "100K": (5.126, 4.921),
-            "1M": (46.496, 47.832),
-            "10M": (459.070, 471.875),
-        }
-       
-        iterations = ["1K", "10K", "100K", "1M", "10M"]
-        
-    elif(mode=="cpu"):
-        # Data points (Execution Time in ms)
-        papi = {
-            "1K": (0.115, 0.151),
-            "10K": (1.107, 1.115),
-            "100K": (10.987, 11.140),
-            "1M": (110.398, 110.039),
-            "10M": (1098.764, 1101.374),
-        }
-       
-        perf = {
-            "1K": (0.115, 0.169),
-            "10K": (1.107, 1.239),
-            "100K": (10.987, 11.256),
-            "1M": (110.398, 112.450),
-            "10M": (1098.764, 1113.285),
-        } 
-        
-        iterations = ["1K", "10K", "100K", "1M", "10M"]
-       
-    elif(mode=="io"):
-        # Data points (Execution Time in ms)
-        papi = {
-            "1": (0.222, 0.295),
-            "10": (0.256, 0.324),
-            "100": (2.056, 2.177),
-            "1K": (20.033, 20.316),
-            "10K": (275.148, 242.150),
-        }
-       
-        perf = {
-            "1": (0.222, 0.227),
-            "10": (0.256, 0.442),
-            "100": (2.056, 2.506),
-            "1K": (20.033, 23.984),
-            "10K": (275.148, 254.031),
-        }
-        
-        iterations = ["1","10","100","1K", "10K"]
+def read_metrics(filepath):
+    """Reads values from a file and computes average and 99th percentile."""
+    with open(filepath, 'r') as f:
+        values = [float(line.strip()) for line in f if line.strip()]
+    if not values:
+        return None
+    avg = np.mean(values) 
+    p99 = sorted(values)[990]
+    return avg, p99
 
-    x_values = np.arange(len(iterations))  # Numeric indices for categorical x-axis
+def construct_filename(monitoring, mode, iter_num, version=None):
+    """Builds filename given parameters."""
+    if monitoring == "no_monitoring":
+        return f"../data/no_monitoring_output_{mode}_{iter_num}.txt"
+    return f"../data/{monitoring}_output_{mode}_{iter_num}_{version}.txt"
+
+def label_to_number(label):
+    """Converts '1K' -> '1000', '10M' -> '10000000'."""
+    if label[-1] in 'KkMm':
+        base = int(label[:-1])
+        mult = 1_000 if label[-1].upper() == 'K' else 1_000_000
+        return str(base * mult)
+    return label
+
+def latency_plotter(mode, type_res):
+    iteration_labels = {
+        "mem": ["1K", "10K", "100K", "1M", "10M"],
+        "cpu": ["1K", "10K", "100K", "1M", "10M"],
+        "io":  ["1", "10", "100", "1K", "10K"]
+    }
+    versions = ["2", "4"]
     
-    # Extracting y values
-    papi_off = np.array([v[0] for v in papi.values()])
-    papi_on = np.array([v[1] for v in papi.values()])
-    perf_off = np.array([v[0] for v in perf.values()])
-    perf_on = np.array([v[1] for v in perf.values()])
+    papi = {v: [] for v in versions}
+    perf = {v: [] for v in versions}
+    no_mon = []
+
+    valid_labels = []
     
-    # Apply slight offsets to reduce overlap
-    offset = 0.03  # Adjust this value if needed
-    papi_off += offset
-    perf_off -= offset
-    
-    # Plot the lines
-    plt.figure(figsize=(6, 4))
-    plt.plot(x_values, papi_on, marker="s", linestyle="-", color="r", label="PAPI", alpha=0.8)
-    plt.plot(x_values, perf_on, marker="s", linestyle="-", color="b", label="perf", alpha=0.8)
-    plt.plot(x_values, perf_off, marker="s", linestyle="-", color="g", label="No Monitoring", alpha=0.8)
-    
-    # Set x-ticks to categorical values
-    plt.xticks(x_values, iterations)
-    
+    for label in iteration_labels[mode]:
+        iter_num = label_to_number(label)
+
+        # Read PAPI and perf for both versions
+        all_found = True
+        for v in versions:
+            papi_file = construct_filename("papi", mode, iter_num, v)
+            perf_file = construct_filename("perf", mode, iter_num, v)
+
+            if not (os.path.exists(papi_file) and os.path.exists(perf_file)):
+                print(f"Missing {papi_file} or {perf_file}")
+                all_found = False
+                break
+
+        no_mon_file = construct_filename("no_monitoring", mode, iter_num)
+        if not os.path.exists(no_mon_file):
+            print(f"Missing {no_mon_file}")
+            all_found = False
+
+        if not all_found:
+            continue
+
+        for v in versions:
+            papi_file = construct_filename("papi", mode, iter_num, v)
+            perf_file = construct_filename("perf", mode, iter_num, v)
+            papi[v].append(read_metrics(papi_file)[type_res])  # avg or 99th percentile
+            perf[v].append(read_metrics(perf_file)[type_res])
+
+        no_mon.append(read_metrics(no_mon_file)[type_res])
+        valid_labels.append(label)
+
+    if not valid_labels:
+        print(f"No valid data for mode={mode}")
+        return
+
+    x = np.arange(len(valid_labels))
+
+    plt.figure(figsize=(8, 5))
+    for v, color, style in zip(versions, ['r', 'm'], ['-', '--']):
+        plt.plot(x, papi[v], marker='o', linestyle=style, color=color, label=f"PAPI-{v} Metrics")
+        plt.plot(x, perf[v], marker='s', linestyle=style, color='b' if v == '2' else 'c', label=f"perf-{v} Metrics")
+
+    plt.plot(x, no_mon, marker='^', linestyle='-.', color='g', label="No Monitoring")
+
+    plt.xticks(x, valid_labels)
     plt.yscale("log")
-    
-    
-    # Labels and title
     plt.xlabel("Iterations")
     plt.ylabel("Execution Time (ms)")
-    plt.title("Latency Measurements of PAPI and perf Monitoring")
+    if type_res == 0:
+        title_metric = "Average"
+    elif type_res == 1:
+        title_metric = "99th Percentile"
+    else:
+        print("Invalid type_res. Use 0 (avg) or 1 (p99).")
+        return
+    
+    plt.title(f"{title_metric}Latency Measurements for {mode.upper()}")
+    plt.grid(True, linestyle="--", alpha=0.5)
     plt.legend()
-    plt.grid(True, linestyle="--")
-    
-    # Show plot
-    plt.savefig(f"../plots/latency_{mode}.png", bbox_inches='tight')
+    plt.tight_layout()
+    plt.savefig(f"../plots/latency_{mode}_{title_metric.lower().replace(' ', '_')}.png")
     plt.show()
-    
-modes =["mem","cpu","io"]
 
-for i in modes:
-    latency_plotter(i)
+for type_res in [0, 1]:
+    for mode in ["mem", "cpu", "io"]:
+        latency_plotter(mode, type_res)
