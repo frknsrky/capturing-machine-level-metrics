@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
 	for (; j<2; j++) {
 		char* mode = modes[j];
 		for (int iterations=1000; iterations<=10000000; iterations *= 10) {
-			for (int num_metrics = 2; num_metrics <=4; num_metrics += 2) {
+			for (int num_metrics = 4; num_metrics > 0; num_metrics -= 2) {
 				char filename[128];
 				snprintf(filename, sizeof(filename), "papi_output_%s_%d_%d.txt", mode, iterations, num_metrics);
 				FILE *file = fopen(filename, "w");
@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
 	}
 	char* mode = modes[j];
 	for (int iterations=1; iterations<=10000; iterations *= 10) {
-		for (int num_metrics = 2; num_metrics <=4; num_metrics += 2) {
+		for (int num_metrics = 4; num_metrics > 0; num_metrics -= 2) {
 			char filename[128];
 			snprintf(filename, sizeof(filename), "papi_output_%s_%d_%d.txt", mode, iterations, num_metrics);
 			FILE *file = fopen(filename, "w");
