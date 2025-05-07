@@ -1,5 +1,5 @@
 graph TD
-    HPC["Hardware Performance Counters"]--> SDK["OpenTelemetry SDK"]
+    HPC["Hardware Performance Counters"]--> SDK["OpenTracing SDK"]
     SDK --> |HTTP or gRPC| COLLECTOR
     COLLECTOR["Jaeger Collector"] --> STORE[Storage]
     COLLECTOR --> |gRPC| PLUGIN[Storage Plugin]
